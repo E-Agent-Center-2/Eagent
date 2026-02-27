@@ -165,12 +165,20 @@ function wrapLine(text: string, width: number): string[] {
     const rest = buf.slice(breakAt);
     pushLine(bufToString(left));
 
-    while (rest.length > 0 && rest[0]?.kind === "char" && isSpaceChar(rest[0].value)) {
-      rest.shift();
+    // Avoid repeated Array#shift() calls here: shifting is O(n) and this path can
+    // run frequently while wrapping long rows in status-style tables.
+    let trimStart = 0;
+    while (
+      trimStart < rest.length &&
+      rest[trimStart]?.kind === "char" &&
+      isSpaceChar(rest[trimStart].value)
+    ) {
+      trimStart += 1;
     }
+    const next = trimStart > 0 ? rest.slice(trimStart) : rest;
 
     buf.length = 0;
-    buf.push(...rest);
+    buf.push(...next);
     bufVisible = bufVisibleWidth(buf);
     lastBreakIndex = null;
   };
